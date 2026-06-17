@@ -1,0 +1,3045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Audit Agent | Dashboard</title>
+  <style>
+    :root {
+      --bg: #f3f5f9;
+      --canvas: #ffffff;
+      --panel: #ffffff;
+      --panel-soft: #fafbfd;
+      --line: #e6ebf2;
+      --line-strong: #d8e0ea;
+      --text: #18212f;
+      --muted: #6f7d91;
+      --muted-2: #8e98a8;
+      --orange: #ff8a3d;
+      --orange-soft: rgba(255, 138, 61, 0.12);
+      --blue: #5b89ff;
+      --blue-soft: rgba(91, 137, 255, 0.12);
+      --green: #2bb673;
+      --green-soft: rgba(43, 182, 115, 0.12);
+      --red: #e25a64;
+      --red-soft: rgba(226, 90, 100, 0.12);
+      --amber: #d79a22;
+      --shadow: 0 16px 40px rgba(31, 44, 68, 0.08);
+      --shadow-soft: 0 8px 24px rgba(31, 44, 68, 0.05);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --sidebar-w: 88px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top right, rgba(255,138,61,0.08), transparent 30%),
+        radial-gradient(circle at 25% 20%, rgba(91,137,255,0.07), transparent 26%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+      line-height: 1.45;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; }
+    button {
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 16px;
+      top: -50px;
+      z-index: 1000;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--text);
+      box-shadow: var(--shadow-soft);
+      transition: top 160ms ease;
+    }
+    .skip-link:focus { top: 16px; outline: 2px solid var(--orange); }
+
+    .sidebar {
+      position: fixed;
+      left: 22px;
+      top: 22px;
+      bottom: 22px;
+      width: var(--sidebar-w);
+      padding: 16px 10px;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.86);
+      border: 1px solid rgba(220, 228, 238, 0.9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      z-index: 20;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #ffb36d, var(--orange));
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      box-shadow: 0 10px 24px rgba(255,138,61,0.25);
+    }
+
+    .side-nav {
+      display: grid;
+      gap: 10px;
+      width: 100%;
+      margin-top: 6px;
+      flex: 1;
+    }
+
+    .side-nav button {
+      width: 100%;
+      min-height: 54px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      gap: 4px;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid transparent;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+    .side-nav button span:first-child { font-size: 18px; }
+    .side-nav button span:last-child { font-size: 10px; letter-spacing: -0.01em; }
+    .side-nav button:hover,
+    .side-nav button:focus-visible {
+      outline: none;
+      color: var(--text);
+      background: rgba(255,255,255,0.8);
+      border-color: var(--line);
+      transform: translateY(-1px);
+    }
+
+    .sidebar-footer {
+      width: 100%;
+      padding: 12px 10px;
+      border-radius: 18px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .workspace {
+      margin-left: calc(var(--sidebar-w) + 44px);
+      padding: 22px 22px 30px 0;
+    }
+
+    .canvas {
+      width: min(100%, 1680px);
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(220, 228, 238, 0.9);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      border-radius: 36px;
+      padding: 22px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--orange);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 6px;
+      font-size: clamp(28px, 3vw, 40px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .lede {
+      margin: 0;
+      max-width: 68ch;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .topbar-tools {
+      display: grid;
+      gap: 10px;
+      min-width: min(460px, 40vw);
+      justify-items: end;
+    }
+
+    .search {
+      width: min(460px, 100%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      min-height: 46px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .search input {
+      border: 0;
+      outline: 0;
+      width: 100%;
+      background: transparent;
+      color: var(--text);
+    }
+    .search input::placeholder { color: var(--muted-2); }
+
+    .tool-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .profile {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 14px 0 8px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #ffb36d, var(--orange));
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .top-status {
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,138,61,0.08), rgba(91,137,255,0.05));
+      border: 1px solid rgba(255,138,61,0.18);
+      min-width: min(460px, 100%);
+    }
+    .top-status .label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .top-status .value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+    .top-status .copy {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress-shell {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+    }
+    .progress-track {
+      height: 10px;
+      border-radius: 999px;
+      background: #ecf1f6;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--orange), var(--blue));
+      transition: width 240ms ease;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section {
+      margin-top: 16px;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      padding: 22px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      min-height: 140px;
+      display: grid;
+      align-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: var(--orange);
+      opacity: 0.95;
+    }
+    .kpi-card[data-kind="match"]::before { background: var(--green); }
+    .kpi-card[data-kind="mismatch"]::before { background: var(--red); }
+    .kpi-card[data-kind="missing"]::before { background: var(--amber); }
+    .kpi-card[data-kind="unavailable"]::before { background: var(--blue); }
+
+    .kpi-card .label {
+      color: var(--muted);
+      font-size: 12px;
+      padding-left: 8px;
+    }
+    .kpi-card .value {
+      padding-left: 8px;
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+    .kpi-card .hint {
+      color: var(--muted);
+      font-size: 12px;
+      padding-left: 8px;
+    }
+    .kpi-card[data-kind="total"] .value { color: var(--text); }
+    .kpi-card[data-kind="match"] .value { color: var(--green); }
+    .kpi-card[data-kind="mismatch"] .value { color: var(--red); }
+    .kpi-card[data-kind="missing"] .value { color: var(--amber); }
+    .kpi-card[data-kind="unavailable"] .value { color: var(--blue); }
+
+    .state-strip {
+      margin-top: 14px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .state-header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 2px 6px;
+      margin-bottom: 2px;
+    }
+
+    .state-header h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+
+    .state-header .state-copy {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .state-btn {
+      padding: 12px 12px 11px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      color: var(--muted);
+      text-align: left;
+      display: grid;
+      gap: 5px;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+    }
+    .state-btn:hover,
+    .state-btn:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: rgba(255,138,61,0.35);
+      color: var(--text);
+      background: #fff;
+    }
+    .state-btn[aria-pressed="true"] {
+      background: linear-gradient(180deg, rgba(255,138,61,0.13), rgba(91,137,255,0.08));
+      border-color: rgba(255,138,61,0.35);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
+    }
+    .state-btn .step {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: inherit;
+      opacity: 0.8;
+    }
+    .state-btn strong {
+      font-size: 14px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .state-btn span:last-child {
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+      align-items: start;
+    }
+
+    .main-column,
+    .side-column {
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .side-column {
+      display: none;
+    }
+
+    .panel {
+      padding: 22px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+    }
+    .section-caption {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .dropzone {
+      min-height: 250px;
+      border-radius: 22px;
+      border: 1.5px dashed #d8e0ea;
+      background: linear-gradient(180deg, #ffffff, #fbfcfe);
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+      align-content: space-between;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+    .dropzone.dragging {
+      border-color: rgba(255,138,61,0.65);
+      background: linear-gradient(180deg, rgba(255,138,61,0.06), #fff);
+      transform: translateY(-1px);
+    }
+
+    .dropzone-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .dropzone-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #fff0e5, rgba(255,138,61,0.12));
+      color: var(--orange);
+      font-size: 22px;
+    }
+
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .file-chip[data-status="ready"] {
+      background: var(--green-soft);
+      border-color: rgba(43,182,115,0.18);
+      color: #16744a;
+    }
+    .file-chip[data-status="error"] {
+      background: var(--red-soft);
+      border-color: rgba(226,90,100,0.18);
+      color: #9a2f38;
+    }
+
+    .dropzone h3 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: -0.02em;
+    }
+    .dropzone p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .file-name {
+      min-height: 24px;
+      color: var(--text);
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .file-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+      user-select: none;
+    }
+    .btn:hover,
+    .btn:focus-visible {
+      transform: translateY(-1px);
+      outline: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #ffad69, var(--orange));
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 12px 24px rgba(255,138,61,0.18);
+    }
+    .btn-secondary {
+      background: var(--panel-soft);
+      border-color: var(--line);
+      color: var(--text);
+    }
+    .btn-ghost {
+      background: #fff;
+      border-color: var(--line);
+      color: var(--muted);
+    }
+    .btn[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .helper-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .helper-list span {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+    }
+
+    .upload-alert {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,138,61,0.09), rgba(255,138,61,0.04));
+      border: 1px solid rgba(255,138,61,0.18);
+      color: #7a3d11;
+      font-size: 13px;
+    }
+    .upload-alert strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #5f2c0b;
+    }
+
+    .download-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .fineprint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    details.accordion {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+    #resultsAccordion {
+      border-width: 2px;
+    }
+    details.accordion > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      user-select: none;
+    }
+    details.accordion > summary::-webkit-details-marker { display: none; }
+    .summary-left {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    .summary-left strong {
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+    .summary-left span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .chevron {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      transition: transform 160ms ease;
+      flex: 0 0 auto;
+    }
+    details[open] .chevron { transform: rotate(180deg); }
+    .accordion-body { padding: 0 22px 22px; }
+
+    #mismatchAccordion {
+      background: rgba(226, 90, 100, 0.08);
+      border-color: rgba(226, 90, 100, 0.22);
+    }
+    #mismatchAccordion > summary {
+      background: rgba(226, 90, 100, 0.06);
+    }
+
+    #missingAccordion {
+      background: rgba(215, 154, 34, 0.12);
+      border-color: rgba(215, 154, 34, 0.24);
+    }
+    #missingAccordion > summary {
+      background: rgba(255, 244, 204, 0.72);
+    }
+
+    #unavailableAccordion {
+      background: rgba(91, 137, 255, 0.08);
+      border-color: rgba(91, 137, 255, 0.22);
+    }
+    #unavailableAccordion > summary {
+      background: rgba(91, 137, 255, 0.06);
+    }
+
+    #systemAccordion {
+      background: rgba(24, 33, 47, 0.08);
+      border-color: rgba(24, 33, 47, 0.18);
+    }
+    #systemAccordion > summary {
+      background: rgba(24, 33, 47, 0.06);
+    }
+
+    .empty-state {
+      padding: 28px 22px 30px;
+      border-radius: 18px;
+      border: 1px dashed var(--line-strong);
+      background: #fbfcfe;
+      color: var(--muted);
+    }
+    .empty-state strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .results-table th,
+    .results-table td {
+      padding: 15px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid #edf1f5;
+      font-size: 13px;
+    }
+    .results-table th {
+      background: #f7f9fc;
+      color: #425066;
+      font-weight: 700;
+    }
+    .results-table td { background: #fff; color: var(--text); }
+    .results-table tr:last-child td { border-bottom: 0; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .badge.match { background: var(--green-soft); color: #16744a; }
+    .badge.mismatch { background: var(--red-soft); color: #9a2f38; }
+    .badge.missing { background: rgba(215,154,34,0.14); color: #8d6010; }
+    .badge.unavailable { background: var(--blue-soft); color: #3659ad; }
+    .badge.review { background: rgba(91,137,255,0.14); color: #3659ad; }
+
+    .result-grid,
+    .evidence-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-card,
+    .evidence-item,
+    .side-card,
+    .visual-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+    .result-card,
+    .evidence-item { display: grid; gap: 8px; }
+    .result-card .topline,
+    .evidence-item .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .result-card h4,
+    .evidence-item h4,
+    .side-card h3,
+    .visual-card h3 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.02em;
+    }
+    .result-card p,
+    .evidence-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .result-card .delta { color: var(--text); font-weight: 700; font-size: 13px; }
+    .evidence-item .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .side-column {
+      position: sticky;
+      top: 22px;
+    }
+
+    .visual-card {
+      overflow: hidden;
+      position: relative;
+      min-height: 420px;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(255,138,61,0.10), transparent 22%),
+        radial-gradient(circle at 80% 20%, rgba(91,137,255,0.10), transparent 22%),
+        linear-gradient(180deg, #fff, #fbfcfe);
+    }
+    .visual-card .caption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 44ch;
+    }
+
+    .visual-stage {
+      margin-top: 18px;
+      position: relative;
+      height: 300px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #fcfdff, #f5f8fc);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .hero-illustration {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .visual-overlay {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid rgba(220,228,238,0.95);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .visual-overlay strong {
+      display: block;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .visual-overlay span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .scene-doc,
+    .scene-source,
+    .scene-result {
+      position: absolute;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 14px 28px rgba(31, 44, 68, 0.08);
+    }
+    .scene-doc {
+      left: 18px;
+      top: 42px;
+      width: 170px;
+      height: 198px;
+      padding: 14px;
+    }
+    .scene-source {
+      right: 18px;
+      top: 44px;
+      width: 170px;
+      height: 198px;
+      padding: 14px;
+    }
+    .scene-result {
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 14px;
+      width: 250px;
+      height: 94px;
+      padding: 12px 14px;
+    }
+    .scene-ai {
+      position: absolute;
+      left: 50%;
+      top: 30px;
+      transform: translateX(-50%);
+      width: 96px;
+      height: 96px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(255,138,61,0.20), rgba(91,137,255,0.10));
+      border: 1px solid rgba(255,138,61,0.22);
+      color: #243246;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      box-shadow: 0 16px 30px rgba(255,138,61,0.12);
+    }
+    .scene-line {
+      position: absolute;
+      top: 120px;
+      left: 170px;
+      right: 170px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(91,137,255,0.28), rgba(255,138,61,0.32));
+    }
+    .scene-line::before,
+    .scene-line::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--orange);
+    }
+    .scene-line::before { left: 0; background: var(--blue); }
+    .scene-line::after { right: 0; background: var(--green); }
+
+    .mini-table {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .mini-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: #f7f9fc;
+      color: #506074;
+    }
+    .mini-row strong { color: var(--text); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #f7f9fc;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .guide-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .guide-list li::marker { color: var(--orange); }
+
+    .upload-section,
+    .action-section {
+      padding: 18px;
+    }
+
+    .upload-section .section-head,
+    .action-section .section-head {
+      margin-bottom: 16px;
+    }
+
+    .callout {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,138,61,0.18);
+      background: linear-gradient(180deg, rgba(255,138,61,0.09), rgba(255,138,61,0.04));
+      color: #7a3d11;
+      font-size: 13px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 999;
+      min-width: 240px;
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.96);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      transform: translateY(12px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .muted { color: var(--muted); }
+    .section-gap { margin-top: 16px; }
+
+    @media (max-width: 1320px) {
+      .content-grid { grid-template-columns: 1fr; }
+      .side-column { position: static; }
+      .topbar { flex-direction: column; }
+      .topbar-tools { min-width: 100%; width: 100%; justify-items: stretch; }
+    }
+
+    @media (max-width: 1180px) {
+      .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .state-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .upload-grid { grid-template-columns: 1fr; }
+      .workspace { margin-left: 20px; padding-right: 20px; }
+      .sidebar { display: none; }
+    }
+
+    @media (max-width: 760px) {
+      .canvas { padding: 16px; border-radius: 24px; }
+      .topbar { padding: 16px; }
+      .kpi-row,
+      .state-strip { grid-template-columns: 1fr; }
+      .search { width: 100%; }
+      .topbar-tools { justify-items: stretch; }
+      .tool-row { flex-wrap: wrap; }
+      .state-strip,
+      .panel { padding: 16px; }
+      .results-table th,
+      .results-table td { padding: 12px 10px; font-size: 12px; }
+      .download-row { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; }
+      .visual-stage { height: 260px; }
+      .scene-doc, .scene-source { width: 140px; height: 186px; }
+      .scene-doc { left: 10px; top: 38px; }
+      .scene-source { right: 10px; top: 40px; }
+      .scene-result { width: 210px; }
+      .scene-line { left: 132px; right: 132px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+  <aside class="sidebar" aria-label="주요 메뉴">
+    <div class="brand-mark">DA</div>
+    <nav class="side-nav">
+      <button type="button" aria-label="대시보드"><span>▦</span><span>대시</span></button>
+      <button type="button" aria-label="업로드"><span>⇪</span><span>업로드</span></button>
+      <button type="button" aria-label="검증"><span>◫</span><span>검증</span></button>
+      <button type="button" aria-label="리포트"><span>▣</span><span>리포트</span></button>
+      <button type="button" aria-label="보안"><span>◉</span><span>보안</span></button>
+      <button type="button" aria-label="설정"><span>⚙</span><span>설정</span></button>
+    </nav>
+    <div class="sidebar-footer">Data Audit AI</div>
+  </aside>
+
+  <main class="workspace">
+    <div class="canvas">
+      <header class="topbar card" aria-labelledby="page-title">
+        <div class="topbar-copy">
+          <div class="eyebrow">Data Audit AI Agent · Finance SaaS Dashboard</div>
+          <h1 id="page-title">Data Audit Agent</h1>
+          <p class="lede">검증 대상 보고서와 Source File을 업로드하고, 수치 검증 결과를 요약과 근거 중심으로 빠르게 확인합니다.</p>
+        </div>
+        <div class="topbar-tools" aria-label="상단 도구">
+          <label class="search" for="searchInput">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="text" placeholder="항목, 파일명, 결과 상태 검색" />
+          </label>
+          <div class="tool-row">
+            <button class="icon-btn" type="button" aria-label="알림">🔔</button>
+            <div class="profile"><span class="avatar">A</span> AX Leader</div>
+          </div>
+          <div class="top-status" aria-live="polite">
+            <div class="label">현재 화면 상태</div>
+            <div class="value" id="stateLabel">초기 상태</div>
+            <div class="copy" id="stateCopy">검증 대상 보고서와 Source File을 업로드해 주세요.</div>
+            <div class="progress-shell">
+              <div class="progress-track" aria-hidden="true">
+                <div class="progress-bar" id="progressBar"></div>
+              </div>
+              <div class="progress-text">
+                <span id="progressText">0%</span>
+                <span id="statusTag">대기</span>
+              </div>
+            </div>
+          </div>
+          <div class="muted" id="heroNote" style="font-size:12px; line-height:1.5;">
+            실서비스에서는 검증 실행, 결과 저장, 담당자 확인까지 연결되는 업무 화면입니다.
+          </div>
+        </div>
+      </header>
+
+      <nav class="state-strip card section" aria-label="검증 진행 단계">
+        <div class="state-header">
+          <h2>검증 진행 단계</h2>
+          <div class="state-copy">State 01 ~ State 06</div>
+        </div>
+        <button class="state-btn" type="button" data-state="initial" aria-pressed="true">
+          <span class="step">State 01</span><strong>초기 상태</strong><span>업로드 전 안내와 빈 상태</span>
+        </button>
+        <button class="state-btn" type="button" data-state="uploading" aria-pressed="false">
+          <span class="step">State 02</span><strong>파일 업로드 중</strong><span>업로드 진행과 파일 검증</span>
+        </button>
+        <button class="state-btn" type="button" data-state="uploaded" aria-pressed="false">
+          <span class="step">State 03</span><strong>업로드 완료</strong><span>검증 시작 전 준비 완료</span>
+        </button>
+        <button class="state-btn" type="button" data-state="analyzing" aria-pressed="false">
+          <span class="step">State 04</span><strong>AI Agent 검증 실행 중</strong><span>비교 작업과 진행 피드백</span>
+        </button>
+        <button class="state-btn" type="button" data-state="extracted" aria-pressed="false">
+          <span class="step">State 05</span><strong>요약 및 검증결과</strong><span>결과 요약과 상세 표시</span>
+        </button>
+        <button class="state-btn" type="button" data-state="download" aria-pressed="false">
+          <span class="step">State 06</span><strong>검증결과 다운로드</strong><span>Excel / PDF 다운로드 상태</span>
+        </button>
+      </nav>
+
+      <section class="content-grid section" id="main">
+        <div class="main-column">
+          <section class="panel upload-section" aria-labelledby="upload-title">
+            <div class="section-head">
+              <div>
+                <h2 id="upload-title" class="section-title">파일 업로드</h2>
+                <div class="section-caption">검증 대상 보고서와 Source File을 각각 업로드합니다. 드래그 앤 드롭과 파일 선택 버튼을 모두 지원합니다.</div>
+              </div>
+            </div>
+
+            <div class="upload-grid">
+              <div class="dropzone" data-dropzone="report" tabindex="0" role="group" aria-label="검증 대상 보고서 업로드">
+                <div class="dropzone-head">
+                  <div class="dropzone-icon" aria-hidden="true">📄</div>
+                  <div class="file-chip" id="reportStatus" data-status="idle">대기</div>
+                </div>
+                <div>
+                  <h3>검증 대상 보고서 업로드</h3>
+                  <p>PDF, Word, Excel 파일을 올려주세요. 보고서 본문과 표에서 수치형 데이터를 추출합니다.</p>
+                </div>
+                <div class="file-name" id="reportFileName">아직 선택된 파일이 없습니다.</div>
+                <div class="file-controls">
+                  <label class="btn btn-secondary" for="reportFile">파일 선택</label>
+                  <button class="btn btn-ghost" type="button" data-clear="report">교체</button>
+                </div>
+                <div class="helper-list" aria-label="보고서 업로드 안내">
+                  <span>지원 형식: PDF / DOCX / XLSX</span>
+                  <span>표·본문·각주 읽기</span>
+                </div>
+                <input id="reportFile" class="sr-only" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple />
+              </div>
+
+              <div class="dropzone" data-dropzone="source" tabindex="0" role="group" aria-label="Source File 업로드">
+                <div class="dropzone-head">
+                  <div class="dropzone-icon" aria-hidden="true">🧾</div>
+                  <div class="file-chip" id="sourceStatus" data-status="idle">대기</div>
+                </div>
+                <div>
+                  <h3>Source File 업로드</h3>
+                  <p>검증 기준이 되는 원본 데이터 파일을 올려주세요. 셀, 표, 문장, 각주, 주석의 문맥을 함께 확인합니다.</p>
+                </div>
+                <div class="file-name" id="sourceFileName">아직 선택된 파일이 없습니다.</div>
+                <div class="file-controls">
+                  <label class="btn btn-secondary" for="sourceFile">파일 선택</label>
+                  <button class="btn btn-ghost" type="button" data-clear="source">교체</button>
+                </div>
+                <div class="helper-list" aria-label="Source File 업로드 안내">
+                  <span>지원 형식: PDF / DOCX / XLSX</span>
+                  <span>문맥 출처 함께 읽기</span>
+                </div>
+                <input id="sourceFile" class="sr-only" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple />
+              </div>
+            </div>
+          </section>
+
+          <section class="panel action-section" aria-labelledby="action-title">
+            <div class="section-head">
+              <div>
+                <h2 id="action-title" class="section-title">검증 실행</h2>
+                <div class="section-caption">파일 2개가 모두 준비되어야 검증을 시작할 수 있습니다.</div>
+              </div>
+            </div>
+            <div class="download-row">
+              <button id="startBtn" class="btn btn-primary" type="button">검증 시작</button>
+            </div>
+            <div class="fineprint" id="validationHint">파일을 올리면 검증 버튼이 활성화됩니다. 이 화면은 구조와 UX를 보여주는 시안입니다.</div>
+            <div class="section-gap upload-alert">
+              <div aria-hidden="true">⚠️</div>
+              <div>
+                <strong>개인정보 포함 가능성 안내</strong>
+                주민등록번호, 계좌번호, 카드번호, 휴대전화번호, 고객 식별번호가 포함되어 있을 수 있습니다. 업로드 전 마스킹 여부를 확인해 주세요.
+              </div>
+            </div>
+          </section>
+
+          <section class="kpi-row section" aria-label="핵심 지표 요약">
+            <article class="kpi-card" data-kind="total">
+              <div class="label">총 검증 항목 수</div>
+              <div class="value" id="metricTotal">0</div>
+              <div class="hint">보고서에서 추출된 수치형 데이터</div>
+            </article>
+            <article class="kpi-card" data-kind="match">
+              <div class="label">일치 수</div>
+              <div class="value" id="metricMatch">0</div>
+              <div class="hint">보고서 값과 Source 값이 일치</div>
+            </article>
+            <article class="kpi-card" data-kind="mismatch">
+              <div class="label">불일치 수</div>
+              <div class="value" id="metricMismatch">0</div>
+              <div class="hint">담당자 확인이 필요한 항목</div>
+            </article>
+            <article class="kpi-card" data-kind="missing">
+              <div class="label">누락 수</div>
+              <div class="value" id="metricMissing">0</div>
+              <div class="hint">Source에서 비교값이 없음</div>
+            </article>
+            <article class="kpi-card" data-kind="unavailable">
+              <div class="label">검증 불가 수</div>
+              <div class="value" id="metricUnavailable">0</div>
+              <div class="hint">기간·단위·문맥이 맞지 않음</div>
+            </article>
+          </section>
+
+          <details class="accordion" id="resultsAccordion" open>
+            <summary>
+              <div class="summary-left">
+                <strong>검증 결과</strong>
+                <span>요약 테이블과 상세 결과를 함께 확인</span>
+              </div>
+              <div class="chevron" aria-hidden="true">⌄</div>
+            </summary>
+            <div class="accordion-body" id="resultsBody"></div>
+          </details>
+
+          <details class="accordion" id="mismatchAccordion">
+            <summary>
+              <div class="summary-left">
+                <strong>검증결과 : 불일치</strong>
+                <span>차이값과 담당자 확인 필요 항목을 우선 노출</span>
+              </div>
+              <div class="chevron" aria-hidden="true">⌄</div>
+            </summary>
+            <div class="accordion-body">
+              <div class="result-grid" id="mismatchBody"></div>
+            </div>
+          </details>
+
+          <details class="accordion" id="missingAccordion">
+            <summary>
+              <div class="summary-left">
+                <strong>검증결과 : 누락</strong>
+                <span>Source에서 비교값을 찾지 못한 항목을 모아 보여줍니다.</span>
+              </div>
+              <div class="chevron" aria-hidden="true">⌄</div>
+            </summary>
+            <div class="accordion-body">
+              <div class="result-grid" id="missingBody"></div>
+            </div>
+          </details>
+
+          <details class="accordion" id="unavailableAccordion">
+            <summary>
+              <div class="summary-left">
+                <strong>검증결과 : 검증불가</strong>
+                <span>단위·문맥이 맞지 않아 직접 비교가 어려운 항목을 보여줍니다.</span>
+              </div>
+              <div class="chevron" aria-hidden="true">⌄</div>
+            </summary>
+            <div class="accordion-body">
+              <div class="result-grid" id="unavailableBody"></div>
+            </div>
+          </details>
+
+          <details class="accordion" id="systemAccordion">
+            <summary>
+              <div class="summary-left">
+                <strong>시스템 안내</strong>
+                <span>면책 배너와 검증 범위 안내</span>
+              </div>
+              <div class="chevron" aria-hidden="true">⌄</div>
+            </summary>
+            <div class="accordion-body">
+              <div class="callout">
+                이 화면은 보고서 수치 검증용입니다. 법률·회계·의학적 최종 판단을 대신하지 않으며, 검증 불가 항목은 담당자 확인이 필요합니다.
+              </div>
+              <ul class="guide-list section-gap">
+                <li>검증 대상은 보고서 내 수치형 데이터와 표 숫자입니다.</li>
+                <li>개인정보가 포함된 파일은 업로드 전 마스킹 여부를 확인합니다.</li>
+                <li>출처가 불명확하거나 기간이 다른 항목은 검증 불가로 분류할 수 있습니다.</li>
+                <li>보고서 외 질문은 범위 밖 질문으로 안내합니다.</li>
+              </ul>
+            </div>
+          </details>
+        </div>
+
+        <aside class="side-column" aria-label="보조 안내"></aside>
+      </section>
+    </div>
+  </main>
+
+  <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const stateOrder = ["initial", "uploading", "uploaded", "analyzing", "extracted", "download"];
+    const stateMeta = {
+      initial: {
+        label: "초기 상태",
+        copy: "검증 대상 보고서와 Source File을 업로드해 주세요.",
+        note: "업로드 전에는 결과 영역이 빈 상태로 유지됩니다.",
+        progress: 0,
+        progressTag: "대기",
+        summary: [0, 0, 0, 0, 0],
+        showResults: false,
+        buttonLabel: "검증 시작",
+        resultHint: "파일 2개를 모두 업로드해야 검증을 시작할 수 있습니다."
+      },
+      uploading: {
+        label: "파일 업로드 중",
+        copy: "파일 형식과 읽기 가능 여부를 확인하고 있습니다.",
+        note: "업로드가 완료되면 검증 시작 버튼이 활성화됩니다.",
+        progress: 22,
+        progressTag: "업로드 진행",
+        summary: [0, 0, 0, 0, 0],
+        showResults: false,
+        buttonLabel: "검증 시작",
+        resultHint: "파일 선택 상태를 먼저 확인합니다."
+      },
+      uploaded: {
+        label: "업로드 완료",
+        copy: "검증 시작 전 준비가 완료되었습니다.",
+        note: "검증 범위와 파일 유효성을 다시 한번 확인한 뒤 검증을 시작하세요.",
+        progress: 48,
+        progressTag: "준비 완료",
+        summary: [0, 0, 0, 0, 0],
+        showResults: false,
+        buttonLabel: "검증 시작",
+        resultHint: "이제 AI Agent 분석 실행 단계로 넘어갈 수 있습니다."
+      },
+      analyzing: {
+        label: "AI Agent 검증 실행 중",
+        copy: "보고서의 수치형 데이터를 추출하고 Source File과 비교하고 있습니다.",
+        note: "진행 중에는 결과 영역이 잠기고 상태 피드백만 먼저 보여줍니다.",
+        progress: 72,
+        progressTag: "검증 중",
+        summary: [0, 0, 0, 0, 0],
+        showResults: false,
+        buttonLabel: "검증 중...",
+        resultHint: "수치 비교와 출처 연결을 정리하고 있습니다."
+      },
+      extracted: {
+        label: "요약 및 검증결과",
+        copy: "검증 요약 테이블과 상세 결과를 함께 확인할 수 있습니다.",
+        note: "검증 결과 카드 안에서 요약 테이블이 먼저 보이고, 상세 결과는 그 아래에 이어집니다.",
+        progress: 100,
+        progressTag: "완료",
+        summary: [8, 4, 2, 1, 1],
+        showResults: true,
+        buttonLabel: "검증 완료",
+        resultHint: "담당자 확인이 필요한 항목을 먼저 확인해 주세요."
+      },
+      download: {
+        label: "검증결과 엑셀 다운로드",
+        copy: "Excel 리포트 다운로드가 준비된 상태입니다.",
+        note: "다운로드 완료 후에도 동일 화면에서 PDF 보조본을 다시 받을 수 있습니다.",
+        progress: 100,
+        progressTag: "다운로드 가능",
+        summary: [8, 4, 2, 1, 1],
+        showResults: true,
+        buttonLabel: "검증 완료",
+        resultHint: "검증 결과를 다시 확인할 수 있습니다."
+      }
+    };
+
+    const verificationRules = {
+      sources: ["customer.md", "prd.md", "architecture.md", "AGENTS.md", "skill.md"],
+      validateOnlyNumericAndTableData: true,
+      excludeQualitativeTerms: ["낮음", "높음", "보통", "중간", "상", "하"],
+      approximateTerms: ["약", "대략", "정도"],
+      approximateExpressions: [
+        { pattern: /절반/, value: 50, unit: "%" }
+      ],
+      bigUnitTokens: ["조", "억", "만", "천", "백"],
+      outputColumns: ["항목", "보고서 수치", "단위", "보고서 위치", "보고서 수치 출처", "검증여부", "검증·비교 수치", "단위", "검증·비교 수치 위치", "검증·비교 수치 출처"],
+      resultValues: ["검증완료(일치)", "검증완료(불일치)", "확인 필요"],
+      mismatchHighlight: true
+    };
+
+    const pythonApiBase = "http://127.0.0.1:8000";
+
+    const stateButtons = Array.from(document.querySelectorAll("[data-state]"));
+    const resultAccordion = document.getElementById("resultsAccordion");
+    const mismatchAccordion = document.getElementById("mismatchAccordion");
+    const missingAccordion = document.getElementById("missingAccordion");
+    const unavailableAccordion = document.getElementById("unavailableAccordion");
+    const systemAccordion = document.getElementById("systemAccordion");
+    const resultsBody = document.getElementById("resultsBody");
+    const mismatchBody = document.getElementById("mismatchBody");
+    const missingBody = document.getElementById("missingBody");
+    const unavailableBody = document.getElementById("unavailableBody");
+    const timeline = document.getElementById("timeline");
+    const toast = document.getElementById("toast");
+    const announcer = document.getElementById("announcer");
+
+    const reportInput = document.getElementById("reportFile");
+    const sourceInput = document.getElementById("sourceFile");
+    const reportStatus = document.getElementById("reportStatus");
+    const sourceStatus = document.getElementById("sourceStatus");
+    const reportFileName = document.getElementById("reportFileName");
+    const sourceFileName = document.getElementById("sourceFileName");
+    const startBtn = document.getElementById("startBtn");
+    const validationHint = document.getElementById("validationHint");
+    const stateLabel = document.getElementById("stateLabel");
+    const stateCopy = document.getElementById("stateCopy");
+    const heroNote = document.getElementById("heroNote");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const statusTag = document.getElementById("statusTag");
+    const metricTotal = document.getElementById("metricTotal");
+    const metricMatch = document.getElementById("metricMatch");
+    const metricMismatch = document.getElementById("metricMismatch");
+    const metricMissing = document.getElementById("metricMissing");
+    const metricUnavailable = document.getElementById("metricUnavailable");
+
+    let currentState = "initial";
+    let validationTimer = null;
+    let validationResult = null;
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function fileTypeAllowed(file) {
+      if (!file) return false;
+      return /\.(pdf|doc|docx|xls|xlsx)$/i.test(file.name);
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return "";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function truncateText(value, maxLength = 90) {
+      const text = normalizeText(value);
+      if (!text) return "";
+      return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+    }
+
+    function normalizeText(value) {
+      return String(value || "")
+        .replace(/\s+/g, " ")
+        .replace(/[|·•]/g, " ")
+        .replace(/[“”"']/g, "")
+        .trim();
+    }
+
+    function normalizeKey(value) {
+      return normalizeText(value)
+        .toLowerCase()
+        .replace(/[^\w가-힣%.\-/\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function wordSet(value) {
+      return new Set(
+        normalizeKey(value)
+          .split(" ")
+          .map((part) => part.trim())
+          .filter(Boolean)
+      );
+    }
+
+    function similarity(a, b) {
+      const setA = wordSet(a);
+      const setB = wordSet(b);
+      if (!setA.size || !setB.size) return 0;
+      let overlap = 0;
+      setA.forEach((item) => {
+        if (setB.has(item)) overlap += 1;
+      });
+      return (2 * overlap) / (setA.size + setB.size);
+    }
+
+    function unitCategory(unit) {
+      const normalized = normalizeKey(unit);
+      if (!normalized) return "none";
+      if (["%", "p", "%p", "퍼센트", "퍼센트포인트"].some((item) => normalized.includes(item))) return "percent";
+      if (["조", "억", "만", "천", "백", "원", "usd", "달러", "$"].some((item) => normalized.includes(item))) return "scale";
+      if (["건", "명", "회", "개", "점", "명분"].some((item) => normalized.includes(item))) return "count";
+      return "other";
+    }
+
+    function unitMultiplier(unit) {
+      const normalized = normalizeKey(unit);
+      if (normalized.includes("조")) return 1e12;
+      if (normalized.includes("억")) return 1e8;
+      if (normalized.includes("만")) return 1e4;
+      if (normalized.includes("천")) return 1e3;
+      if (normalized.includes("백")) return 1e2;
+      return 1;
+    }
+
+    function scaleTokenFromText(text) {
+      const normalized = normalizeKey(text);
+      return verificationRules.bigUnitTokens.find((token) => normalized.includes(token)) || "";
+    }
+
+    function inferUnit(token) {
+      let text = normalizeText(token).replace(/\s+/g, "").toLowerCase();
+      text = text.replace(/^[|,/:;·\-\(\)\[\]\{\}]+/g, "");
+      if (!text) return "";
+
+      const baseUnits = ["%p", "%", "원", "건", "회", "개", "세", "점", "명", "달러", "usd", "p", "년", "월", "일", "분기", "호", "차"];
+      for (const unit of baseUnits) {
+        if (text.startsWith(unit)) return unit;
+      }
+
+      for (const scale of ["조", "억", "만", "천", "백"]) {
+        if (text.startsWith(scale)) {
+          const remainder = text.slice(scale.length);
+          for (const unit of ["명", "건", "회", "개", "원", "달러", "usd", "세", "점", "년", "월", "일"]) {
+            if (remainder.startsWith(unit)) return scale + unit;
+          }
+          return scale;
+        }
+      }
+
+      return "";
+    }
+
+    function parseNumericToken(line, match) {
+      const numberText = String(match?.[0] || "");
+      const cleaned = numberText.replace(/,/g, "");
+      const suffix = normalizeText(String(line || "").slice((match?.index || 0) + numberText.length, (match?.index || 0) + numberText.length + 24));
+      const unit = inferUnit(suffix);
+      const numberPart = cleaned;
+      const numeric = Number(numberPart.replace(/,/g, ""));
+      if (Number.isNaN(numeric)) return null;
+      return {
+        raw: cleaned,
+        numeric,
+        unit,
+        decimals: (numberPart.split(".")[1] || "").length
+      };
+    }
+
+    function hasApproximateCue(text) {
+      const normalized = normalizeText(text);
+      return verificationRules.approximateTerms.some((term) => normalized.includes(term))
+        || verificationRules.approximateExpressions.some((expr) => expr.pattern.test(normalized));
+    }
+
+    function extractApproximateValue(text) {
+      const normalized = normalizeText(text);
+      for (const expression of verificationRules.approximateExpressions) {
+        if (expression.pattern.test(normalized)) {
+          return {
+            raw: normalized,
+            numeric: expression.value,
+            unit: expression.unit,
+            decimals: 0,
+            approximate: true
+          };
+        }
+      }
+      return null;
+    }
+
+    function pickComparisonUnit(reportCandidate, sourceCandidate) {
+      const reportUnit = reportCandidate.unit || "";
+      const sourceUnit = sourceCandidate.unit || "";
+      const reportCategory = unitCategory(reportUnit);
+      const sourceCategory = unitCategory(sourceUnit);
+
+      if (reportCategory === "percent" || sourceCategory === "percent") {
+        return reportUnit || sourceUnit || "%";
+      }
+
+      const reportScale = scaleTokenFromText(reportUnit);
+      const sourceScale = scaleTokenFromText(sourceUnit);
+      if (reportScale) return reportScale;
+      if (sourceScale) return sourceScale;
+
+      const reportBase = Math.abs(reportCandidate.value * unitMultiplier(reportUnit));
+      const sourceBase = Math.abs(sourceCandidate.value * unitMultiplier(sourceUnit));
+      const maxBase = Math.max(reportBase, sourceBase);
+
+      if (maxBase >= 1e12) return "조";
+      if (maxBase >= 1e8) return "억";
+      if (maxBase >= 1e4) return "만";
+      if (reportCategory === sourceCategory && reportCategory !== "none") return reportUnit || sourceUnit || "";
+      if (reportCategory !== "none") return reportUnit;
+      if (sourceCategory !== "none") return sourceUnit;
+      return "";
+    }
+
+    function templateResultLabel(result) {
+      if (result === "일치") return "검증완료(일치)";
+      if (result === "불일치") return "검증완료(불일치)";
+      return "확인 필요";
+    }
+
+    function templateResultBadge(result) {
+      if (result === "일치") return "match";
+      if (result === "불일치") return "mismatch";
+      return "review";
+    }
+
+    function escapeXml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&apos;");
+    }
+
+    function columnName(index) {
+      let n = index + 1;
+      let name = "";
+      while (n > 0) {
+        const rem = (n - 1) % 26;
+        name = String.fromCharCode(65 + rem) + name;
+        n = Math.floor((n - 1) / 26);
+      }
+      return name;
+    }
+
+    function createCrcTable() {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i += 1) {
+        let c = i;
+        for (let k = 0; k < 8; k += 1) {
+          c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        }
+        table[i] = c >>> 0;
+      }
+      return table;
+    }
+
+    const crcTable = createCrcTable();
+
+    function crc32(bytes) {
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < bytes.length; i += 1) {
+        crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function writeUint16LE(view, offset, value) {
+      view.setUint16(offset, value, true);
+    }
+
+    function writeUint32LE(view, offset, value) {
+      view.setUint32(offset, value >>> 0, true);
+    }
+
+    function utf8Bytes(text) {
+      return new TextEncoder().encode(String(text));
+    }
+
+    function buildZip(files) {
+      const fileParts = [];
+      const centralParts = [];
+      let offset = 0;
+
+      files.forEach(({ name, data }) => {
+        const filenameBytes = utf8Bytes(name);
+        const payload = data instanceof Uint8Array ? data : utf8Bytes(data);
+        const crc = crc32(payload);
+        const localHeader = new ArrayBuffer(30 + filenameBytes.length);
+        const localView = new DataView(localHeader);
+        writeUint32LE(localView, 0, 0x04034b50);
+        writeUint16LE(localView, 4, 20);
+        writeUint16LE(localView, 6, 0x0800);
+        writeUint16LE(localView, 8, 0);
+        writeUint16LE(localView, 10, 0);
+        writeUint16LE(localView, 12, 0);
+        writeUint32LE(localView, 14, crc);
+        writeUint32LE(localView, 18, payload.length);
+        writeUint32LE(localView, 22, payload.length);
+        writeUint16LE(localView, 26, filenameBytes.length);
+        writeUint16LE(localView, 28, 0);
+        new Uint8Array(localHeader, 30).set(filenameBytes);
+
+        fileParts.push(new Uint8Array(localHeader), payload);
+
+        const centralHeader = new ArrayBuffer(46 + filenameBytes.length);
+        const centralView = new DataView(centralHeader);
+        writeUint32LE(centralView, 0, 0x02014b50);
+        writeUint16LE(centralView, 4, 20);
+        writeUint16LE(centralView, 6, 20);
+        writeUint16LE(centralView, 8, 0x0800);
+        writeUint16LE(centralView, 10, 0);
+        writeUint16LE(centralView, 12, 0);
+        writeUint16LE(centralView, 14, 0);
+        writeUint32LE(centralView, 16, crc);
+        writeUint32LE(centralView, 20, payload.length);
+        writeUint32LE(centralView, 24, payload.length);
+        writeUint16LE(centralView, 28, filenameBytes.length);
+        writeUint16LE(centralView, 30, 0);
+        writeUint16LE(centralView, 32, 0);
+        writeUint16LE(centralView, 34, 0);
+        writeUint16LE(centralView, 36, 0);
+        writeUint32LE(centralView, 38, 0);
+        writeUint32LE(centralView, 42, offset);
+        new Uint8Array(centralHeader, 46).set(filenameBytes);
+
+        centralParts.push(new Uint8Array(centralHeader));
+        offset += localHeader.byteLength + payload.length;
+      });
+
+      const centralLength = centralParts.reduce((sum, part) => sum + part.length, 0);
+      const endRecord = new ArrayBuffer(22);
+      const endView = new DataView(endRecord);
+      writeUint32LE(endView, 0, 0x06054b50);
+      writeUint16LE(endView, 4, 0);
+      writeUint16LE(endView, 6, 0);
+      writeUint16LE(endView, 8, files.length);
+      writeUint16LE(endView, 10, files.length);
+      writeUint32LE(endView, 12, centralLength);
+      writeUint32LE(endView, 16, offset);
+      writeUint16LE(endView, 20, 0);
+
+      return new Blob([...fileParts, ...centralParts, new Uint8Array(endRecord)], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+    }
+
+    async function downloadExcelFromResults() {
+      const rows = validationResult?.rows || [];
+      if (!rows.length) {
+        showToast("다운로드 준비 중", "검증 결과가 먼저 표시되어야 합니다.");
+        return;
+      }
+
+      showToast("다운로드 시작", "검증결과.xlsx 파일을 저장합니다.");
+
+      const header = verificationRules.outputColumns;
+      const rowsXml = [
+        `<row r="1">${header.map((cell, index) => `<c r="${columnName(index)}1" t="inlineStr" s="1"><is><t>${escapeXml(cell)}</t></is></c>`).join("")}</row>`,
+        ...rows.map((row, rowIndex) => {
+          const excelRow = rowIndex + 2;
+          const style = row.displayResult === "검증완료(불일치)" ? "2" : "0";
+          const values = [
+            row.item,
+            row.reportValue,
+            row.reportUnit || "-",
+            row.reportLocation || "-",
+            row.reportSource || "-",
+            row.displayResult || templateResultLabel(row.result),
+            row.sourceValue,
+            row.sourceUnit || "-",
+            row.sourceLocation || "-",
+            row.sourceSource || "-"
+          ];
+          return `<row r="${excelRow}">${values.map((cell, index) => `<c r="${columnName(index)}${excelRow}" t="inlineStr" s="${style}"><is><t>${escapeXml(cell)}</t></is></c>`).join("")}</row>`;
+        })
+      ].join("");
+
+      const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+          <sheetData>${rowsXml}</sheetData>
+        </worksheet>`;
+
+      const files = [
+        {
+          name: "[Content_Types].xml",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+              <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+              <Default Extension="xml" ContentType="application/xml"/>
+              <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+              <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+              <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+              <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+              <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+            </Types>`
+        },
+        {
+          name: "_rels/.rels",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+              <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+              <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+            </Relationships>`
+        },
+        {
+          name: "docProps/core.xml",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+              xmlns:dc="http://purl.org/dc/elements/1.1/"
+              xmlns:dcterms="http://purl.org/dc/terms/"
+              xmlns:dcmitype="http://purl.org/dc/dcmitype/"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+              <dc:title>검증결과</dc:title>
+              <dc:creator>Data Audit Agent</dc:creator>
+              <cp:lastModifiedBy>Data Audit Agent</cp:lastModifiedBy>
+              <dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created>
+              <dcterms:modified xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:modified>
+            </cp:coreProperties>`
+        },
+        {
+          name: "docProps/app.xml",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
+              xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+              <Application>Data Audit Agent</Application>
+              <DocSecurity>0</DocSecurity>
+              <ScaleCrop>false</ScaleCrop>
+              <HeadingPairs>
+                <vt:vector size="2" baseType="variant">
+                  <vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant>
+                  <vt:variant><vt:i4>1</vt:i4></vt:variant>
+                </vt:vector>
+              </HeadingPairs>
+              <TitlesOfParts>
+                <vt:vector size="1" baseType="lpstr">
+                  <vt:lpstr>검증결과</vt:lpstr>
+                </vt:vector>
+              </TitlesOfParts>
+            </Properties>`
+        },
+        {
+          name: "xl/workbook.xml",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+              xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+              <sheets>
+                <sheet name="검증결과" sheetId="1" r:id="rId1"/>
+              </sheets>
+            </workbook>`
+        },
+        {
+          name: "xl/_rels/workbook.xml.rels",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+              <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+            </Relationships>`
+        },
+        {
+          name: "xl/styles.xml",
+          data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+              <fonts count="3">
+                <font><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/><family val="2"/></font>
+                <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font>
+                <font><sz val="11"/><color rgb="FFFF0000"/><name val="Calibri"/><family val="2"/></font>
+              </fonts>
+              <fills count="3">
+                <fill><patternFill patternType="none"/></fill>
+                <fill><patternFill patternType="gray125"/></fill>
+                <fill><patternFill patternType="solid"><fgColor rgb="FF1F4E78"/><bgColor indexed="64"/></patternFill></fill>
+              </fills>
+              <borders count="1">
+                <border><left/><right/><top/><bottom/><diagonal/></border>
+              </borders>
+              <cellStyleXfs count="1">
+                <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+              </cellStyleXfs>
+              <cellXfs count="3">
+                <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+                <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+                <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+              </cellXfs>
+            </styleSheet>`
+        },
+        {
+          name: "xl/worksheets/sheet1.xml",
+          data: sheetXml
+        }
+      ];
+
+      const blob = buildZip(files.map((file) => ({ name: file.name, data: utf8Bytes(file.data) })));
+      const fileName = "검증결과.xlsx";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function roundTo(value, decimals) {
+      const factor = 10 ** decimals;
+      return Math.round((value + Number.EPSILON) * factor) / factor;
+    }
+
+    function deriveLabel(text, numberIndex) {
+      let prefix = normalizeText(text.slice(0, numberIndex)).replace(/[:：\-–—]+$/, "").trim();
+      prefix = prefix.replace(/^.*?(?:에 따르면|에 의하면|에 의거하면)\s*/, "");
+      if (prefix) return prefix;
+      const segment = normalizeText(text)
+        .split(/[|\/]/)
+        .map((part) => part.trim())
+        .find(Boolean);
+      return segment || "";
+    }
+
+    function extractTextFromNode(node) {
+      let text = "";
+      node.childNodes.forEach((child) => {
+        if (child.nodeType === Node.TEXT_NODE) {
+          text += child.nodeValue || "";
+          return;
+        }
+        if (child.nodeType !== Node.ELEMENT_NODE) return;
+        const name = child.localName;
+        if (name === "tab") {
+          text += "\t";
+          return;
+        }
+        if (name === "br" || name === "cr") {
+          text += "\n";
+          return;
+        }
+        text += extractTextFromNode(child);
+      });
+      return text;
+    }
+
+    function parseXml(xmlText) {
+      return new DOMParser().parseFromString(xmlText, "application/xml");
+    }
+
+    async function inflateRaw(data) {
+      if (typeof DecompressionStream === "undefined") {
+        throw new Error("이 브라우저는 ZIP 압축 해제를 지원하지 않습니다.");
+      }
+
+      const tryModes = ["deflate-raw", "deflate"];
+      for (const mode of tryModes) {
+        try {
+          const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream(mode));
+          const buffer = await new Response(stream).arrayBuffer();
+          return new Uint8Array(buffer);
+        } catch (error) {
+          continue;
+        }
+      }
+
+      throw new Error("ZIP 압축 해제에 실패했습니다.");
+    }
+
+    async function unzipEntries(file) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      let eocd = -1;
+
+      for (let index = bytes.length - 22; index >= 0; index -= 1) {
+        if (view.getUint32(index, true) === 0x06054b50) {
+          eocd = index;
+          break;
+        }
+      }
+
+      if (eocd < 0) {
+        throw new Error("ZIP 파일 구조를 찾지 못했습니다.");
+      }
+
+      const totalEntries = view.getUint16(eocd + 10, true);
+      const centralDirectoryOffset = view.getUint32(eocd + 16, true);
+      let pointer = centralDirectoryOffset;
+      const entries = new Map();
+      const decoder = new TextDecoder("utf-8");
+
+      for (let i = 0; i < totalEntries; i += 1) {
+        if (view.getUint32(pointer, true) !== 0x02014b50) break;
+        const compressionMethod = view.getUint16(pointer + 10, true);
+        const compressedSize = view.getUint32(pointer + 20, true);
+        const fileNameLength = view.getUint16(pointer + 28, true);
+        const extraLength = view.getUint16(pointer + 30, true);
+        const commentLength = view.getUint16(pointer + 32, true);
+        const localHeaderOffset = view.getUint32(pointer + 42, true);
+        const fileName = decoder.decode(bytes.slice(pointer + 46, pointer + 46 + fileNameLength));
+
+        if (view.getUint32(localHeaderOffset, true) !== 0x04034b50) {
+          pointer += 46 + fileNameLength + extraLength + commentLength;
+          continue;
+        }
+
+        const localNameLength = view.getUint16(localHeaderOffset + 26, true);
+        const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
+        const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
+        const data = bytes.slice(dataStart, dataStart + compressedSize);
+
+        let content;
+        if (compressionMethod === 0) {
+          content = data;
+        } else if (compressionMethod === 8) {
+          content = await inflateRaw(data);
+        } else {
+          throw new Error(`지원하지 않는 ZIP 압축 방식: ${compressionMethod}`);
+        }
+
+        entries.set(fileName, content);
+        pointer += 46 + fileNameLength + extraLength + commentLength;
+      }
+
+      return entries;
+    }
+
+    function extractBlocksFromPlainText(text, sourceLabel) {
+      return String(text || "")
+        .split(/\r?\n/)
+        .map((line, index) => ({
+          location: `${sourceLabel} 본문 ${index + 1}`,
+          text: normalizeText(line)
+        }))
+        .filter((line) => line.text);
+    }
+
+    function extractDocxBlocks(entries, fileName) {
+      const decoder = new TextDecoder("utf-8");
+      const blocks = [];
+
+      const xmlNames = [
+        "word/document.xml",
+        ...Array.from(entries.keys()).filter((name) => /^word\/(header|footer)\d+\.xml$/i.test(name))
+          .concat(Array.from(entries.keys()).filter((name) => /^word\/(?:footnotes|endnotes)\.xml$/i.test(name)))
+      ];
+
+      xmlNames.forEach((name) => {
+        const bytes = entries.get(name);
+        if (!bytes) return;
+        const xmlText = decoder.decode(bytes);
+        const xml = parseXml(xmlText);
+        const paragraphs = Array.from(xml.getElementsByTagNameNS("*", "p"));
+        const tables = Array.from(xml.getElementsByTagNameNS("*", "tbl"));
+        let paragraphIndex = 0;
+        let tableRowIndex = 0;
+
+        paragraphs.forEach((paragraph) => {
+          const text = normalizeText(extractTextFromNode(paragraph));
+          if (text) {
+            paragraphIndex += 1;
+            blocks.push({
+              location: `${fileName} 문단 ${paragraphIndex}`,
+              text
+            });
+          }
+        });
+
+        tables.forEach((table) => {
+          Array.from(table.getElementsByTagNameNS("*", "tr")).forEach((row) => {
+            const cells = Array.from(row.getElementsByTagNameNS("*", "tc")).map((cell) => normalizeText(extractTextFromNode(cell))).filter(Boolean);
+            const text = cells.join(" | ");
+            if (text) {
+              tableRowIndex += 1;
+              blocks.push({
+                location: `${fileName} 표 ${tableRowIndex}`,
+                text
+              });
+            }
+          });
+        });
+      });
+
+      return blocks;
+    }
+
+    function extractXlsxBlocks(entries, fileName) {
+      const decoder = new TextDecoder("utf-8");
+      const sharedStrings = [];
+      const sharedBytes = entries.get("xl/sharedStrings.xml");
+
+      if (sharedBytes) {
+        const sharedXml = parseXml(decoder.decode(sharedBytes));
+        Array.from(sharedXml.getElementsByTagNameNS("*", "si")).forEach((item) => {
+          const text = normalizeText(extractTextFromNode(item));
+          sharedStrings.push(text);
+        });
+      }
+
+      const sheetNames = Array.from(entries.keys()).filter((name) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(name)).sort((a, b) => {
+        const aMatch = a.match(/sheet(\d+)\.xml/i);
+        const bMatch = b.match(/sheet(\d+)\.xml/i);
+        return Number(aMatch?.[1] || 0) - Number(bMatch?.[1] || 0);
+      });
+      const blocks = [];
+
+      sheetNames.forEach((sheetName, sheetIndex) => {
+        const sheetXml = parseXml(decoder.decode(entries.get(sheetName)));
+        const rows = Array.from(sheetXml.getElementsByTagNameNS("*", "row"));
+        rows.forEach((row) => {
+          const rowIndex = row.getAttribute("r") || String(blocks.length + 1);
+          const values = Array.from(row.getElementsByTagNameNS("*", "c")).map((cell) => {
+            const cellType = cell.getAttribute("t") || "";
+            const valueNode = cell.getElementsByTagNameNS("*", "v")[0];
+            if (cellType === "s" && valueNode) {
+              return sharedStrings[Number(valueNode.textContent)] || "";
+            }
+            if (cellType === "inlineStr") {
+              return normalizeText(extractTextFromNode(cell));
+            }
+            if (valueNode) {
+              return normalizeText(valueNode.textContent);
+            }
+            return normalizeText(extractTextFromNode(cell));
+          }).filter(Boolean);
+
+          if (values.length) {
+            blocks.push({
+              location: `${fileName} 시트${sheetIndex + 1} 행 ${rowIndex}`,
+              text: values.join(" | ")
+            });
+          }
+        });
+      });
+
+      return blocks;
+    }
+
+    async function extractPdfBlocks(file) {
+      const rawText = await file.text();
+      const blocks = [];
+      const strings = [];
+      const literalMatches = rawText.match(/\((?:\\.|[^\\()]){3,}\)/g) || [];
+
+      literalMatches.forEach((match) => {
+        const body = match.slice(1, -1)
+          .replace(/\\n/g, " ")
+          .replace(/\\r/g, " ")
+          .replace(/\\t/g, " ")
+          .replace(/\\\(/g, "(")
+          .replace(/\\\)/g, ")")
+          .replace(/\\\\/g, "\\");
+        const text = normalizeText(body);
+        if (text && /[A-Za-z가-힣0-9]/.test(text)) strings.push(text);
+      });
+
+      const printableLines = rawText
+        .split(/\r?\n/)
+        .map((line) => normalizeText(line))
+        .filter((line) => line && /[A-Za-z가-힣0-9]/.test(line));
+
+      const candidates = strings.length > printableLines.length ? strings : printableLines;
+      candidates.slice(0, 400).forEach((line, index) => {
+        blocks.push({
+          location: `${file.name} 본문 ${index + 1}`,
+          text: line
+        });
+      });
+
+      return blocks;
+    }
+
+    async function extractLegacyDocBlocks(file) {
+      try {
+        const text = await file.text();
+        return extractBlocksFromPlainText(text, file.name);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    async function extractBlocksFromFile(file) {
+      const ext = (file.name.split(".").pop() || "").toLowerCase();
+      try {
+        if (ext === "docx") {
+          const entries = await unzipEntries(file);
+          return extractDocxBlocks(entries, file.name);
+        }
+        if (ext === "xlsx") {
+          const entries = await unzipEntries(file);
+          return extractXlsxBlocks(entries, file.name);
+        }
+        if (ext === "pdf") {
+          return await extractPdfBlocks(file);
+        }
+        if (ext === "doc") {
+          return await extractLegacyDocBlocks(file);
+        }
+        return extractBlocksFromPlainText(await file.text(), file.name);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function extractNumericCandidates(blocks, role) {
+      const candidates = [];
+      const valuePattern = /(?:[-+]?\d{1,3}(?:,\d{3})+|[-+]?\d+)(?:\.\d+)?/g;
+      const genericLabels = new Set(["", "page", "pg", "p", "sheet", "시트", "table", "표", "본문", "문단"]);
+
+      blocks.forEach((block, blockIndex) => {
+        const line = normalizeText(block.text);
+        if (!line) return;
+
+        const matches = Array.from(line.matchAll(valuePattern));
+        if (!matches.length) {
+          const approx = extractApproximateValue(line);
+          if (!approx) return;
+          const label = deriveLabel(line, line.length);
+          const normalizedLabel = normalizeKey(label);
+          if (genericLabels.has(normalizedLabel)) return;
+          candidates.push({
+            id: `${role}-${blockIndex}-approx`,
+            label,
+            value: approx.numeric,
+            unit: approx.unit,
+            decimals: approx.decimals,
+            valueText: normalizeText(line),
+            location: block.location,
+            sourceText: line,
+            role,
+            approximate: true
+          });
+          return;
+        }
+
+        matches.forEach((match, matchIndex) => {
+          const token = parseNumericToken(line, match);
+          if (!token) return;
+          const label = deriveLabel(line, match.index || 0);
+          const normalizedLabel = normalizeKey(label);
+          if (genericLabels.has(normalizedLabel)) return;
+          if (/^(pg|page|p|sheet|table)\s*\d*$/i.test(normalizedLabel)) return;
+          if (normalizedLabel.length < 2) return;
+          candidates.push({
+            id: `${role}-${blockIndex}-${matchIndex}`,
+            label,
+            value: token.numeric,
+            unit: token.unit,
+            decimals: token.decimals,
+            valueText: token.raw,
+            location: block.location,
+            sourceText: line,
+            role,
+            approximate: hasApproximateCue(line)
+          });
+        });
+      });
+
+      return candidates;
+    }
+
+    function formatDisplayValue(candidate, displayUnit) {
+      const multiplier = unitMultiplier(displayUnit);
+      const baseValue = candidate.value * unitMultiplier(candidate.unit);
+      const numeric = baseValue / multiplier;
+      const rounded = roundTo(numeric, candidate.decimals);
+      const formatted = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+      return displayUnit ? `${formatted}${displayUnit}` : formatted;
+    }
+
+    function compareCandidates(reportCandidate, sourceCandidate) {
+      const reportCategory = unitCategory(reportCandidate.unit);
+      const sourceCategory = unitCategory(sourceCandidate.unit);
+      const displayUnit = pickComparisonUnit(reportCandidate, sourceCandidate);
+      const displayCategory = unitCategory(displayUnit);
+
+      if (reportCategory !== "none" && sourceCategory !== "none" && reportCategory !== sourceCategory) {
+        return {
+          result: "검증 불가",
+          badge: "unavailable",
+          note: "단위 범주가 달라 직접 비교할 수 없습니다.",
+          delta: "단위 범주 다름",
+          sourceDisplay: formatDisplayValue(sourceCandidate, displayUnit),
+          reportDisplay: formatDisplayValue(reportCandidate, displayUnit)
+        };
+      }
+
+      const reportBase = reportCandidate.value * unitMultiplier(reportCandidate.unit);
+      const sourceBase = sourceCandidate.value * unitMultiplier(sourceCandidate.unit);
+      const reportDisplayNumber = reportBase / unitMultiplier(displayUnit);
+      const sourceDisplayNumber = sourceBase / unitMultiplier(displayUnit);
+      const decimals = reportCandidate.decimals;
+      const reportRounded = roundTo(reportDisplayNumber, decimals);
+      const sourceRounded = roundTo(sourceDisplayNumber, decimals);
+      const exactEqual = reportRounded === sourceRounded;
+      const diff = sourceRounded - reportRounded;
+      const diffText = displayUnit === "%"
+        ? `${diff > 0 ? "+" : ""}${roundTo(diff, decimals)}%p`
+        : `${diff > 0 ? "+" : ""}${roundTo(diff, decimals)}${displayUnit}`;
+      const approxCue = reportCandidate.approximate || sourceCandidate.approximate || hasApproximateCue(reportCandidate.sourceText) || hasApproximateCue(sourceCandidate.sourceText);
+      const baseTolerance = displayCategory === "percent"
+        ? 5
+        : Math.max(Math.abs(sourceRounded) * 0.05, 1);
+      const approxEqual = approxCue && Math.abs(diff) <= baseTolerance;
+      const equal = exactEqual || approxEqual;
+
+      return {
+        result: equal ? "일치" : "불일치",
+        badge: equal ? "match" : "mismatch",
+        note: equal
+          ? (exactEqual
+            ? "보고서 값과 Source 값이 반올림 기준상 일치합니다."
+            : "보고서의 근사 표현 기준상 일치합니다.")
+          : `보고서 값과 Source 값이 다릅니다. 차이 ${diffText}`,
+        delta: equal ? "-" : diffText,
+        sourceDisplay: displayUnit ? `${String(sourceRounded)}${displayUnit}` : String(sourceRounded),
+        reportDisplay: displayUnit ? `${String(reportRounded)}${displayUnit}` : String(reportRounded),
+        equal,
+        displayCategory
+      };
+    }
+
+    function matchValidationRows(reportCandidates, sourceCandidates) {
+      const usedSource = new Set();
+      const rows = [];
+
+      reportCandidates.forEach((reportCandidate) => {
+        let bestIndex = -1;
+        let bestScore = 0;
+
+        sourceCandidates.forEach((sourceCandidate, index) => {
+          if (usedSource.has(index)) return;
+          const labelScore = similarity(reportCandidate.label, sourceCandidate.label);
+          const textScore = similarity(reportCandidate.sourceText, sourceCandidate.sourceText) * 0.4;
+          const unitBonus = reportCandidate.unit && sourceCandidate.unit && normalizeKey(reportCandidate.unit) === normalizeKey(sourceCandidate.unit) ? 0.2 : 0;
+          const score = labelScore * 0.6 + textScore + unitBonus;
+          if (score > bestScore) {
+            bestScore = score;
+            bestIndex = index;
+          }
+        });
+
+        if (bestIndex < 0 || bestScore < 0.3) {
+          rows.push({
+            item: reportCandidate.label,
+            reportValue: reportCandidate.valueText,
+            reportUnit: reportCandidate.unit || "-",
+            reportLocation: reportCandidate.location,
+            reportSource: truncateText(reportCandidate.sourceText),
+            sourceValue: "-",
+            sourceUnit: "-",
+            sourceLocation: "-",
+            sourceSource: "-",
+            result: reportCandidate.approximate ? "검증 불가" : "누락",
+            note: reportCandidate.approximate
+              ? `근사 표현이 포함되어 있어 직접 비교가 어렵습니다. 보고서 위치: ${reportCandidate.location}`
+              : `Source File에서 대응 항목을 찾지 못했습니다. 보고서 위치: ${reportCandidate.location}`,
+            badge: reportCandidate.approximate ? "unavailable" : "missing",
+            delta: reportCandidate.approximate ? "문맥 비교 필요" : "비교값 없음",
+            displayResult: reportCandidate.approximate ? "확인 필요" : "확인 필요"
+          });
+          return;
+        }
+
+        usedSource.add(bestIndex);
+        const sourceCandidate = sourceCandidates[bestIndex];
+        const comparison = compareCandidates(reportCandidate, sourceCandidate);
+        rows.push({
+          item: reportCandidate.label,
+          reportValue: reportCandidate.valueText,
+          reportUnit: reportCandidate.unit || "-",
+          reportLocation: reportCandidate.location,
+          reportSource: truncateText(reportCandidate.sourceText),
+          sourceValue: sourceCandidate.valueText,
+          sourceUnit: sourceCandidate.unit || "-",
+          sourceLocation: sourceCandidate.location,
+          sourceSource: truncateText(sourceCandidate.sourceText),
+          result: comparison.result,
+          note: `${comparison.note} / 보고서 위치: ${reportCandidate.location} / Source 위치: ${sourceCandidate.location}`,
+          badge: comparison.badge,
+          delta: comparison.delta,
+          displayResult: templateResultLabel(comparison.result)
+        });
+      });
+
+      return rows;
+    }
+
+    async function runValidation(reportFiles, sourceFiles) {
+      const [reportBlocks, sourceBlocks] = await Promise.all([
+        Promise.all(Array.from(reportFiles).map((file) => extractBlocksFromFile(file))).then((chunks) => chunks.flat()),
+        Promise.all(Array.from(sourceFiles).map((file) => extractBlocksFromFile(file))).then((chunks) => chunks.flat())
+      ]);
+
+      const reportCandidates = extractNumericCandidates(reportBlocks, "report");
+      const sourceCandidates = extractNumericCandidates(sourceBlocks, "source");
+
+      if (!reportCandidates.length && !sourceCandidates.length) {
+        return {
+          summary: [0, 0, 0, 0, 0],
+          rows: [],
+          mismatchRows: [],
+          reportCount: reportCandidates.length,
+          sourceCount: sourceCandidates.length,
+          notice: "보고서와 Source File에서 읽을 수 있는 수치형 데이터를 찾지 못했습니다."
+        };
+      }
+
+      if (reportCandidates.length && !sourceCandidates.length) {
+        const rows = reportCandidates.map((reportCandidate) => ({
+          item: reportCandidate.label,
+          reportValue: reportCandidate.valueText,
+          reportUnit: reportCandidate.unit || "-",
+          reportLocation: reportCandidate.location,
+          reportSource: truncateText(reportCandidate.sourceText),
+          sourceValue: "-",
+          sourceUnit: "-",
+          sourceLocation: "-",
+          sourceSource: "-",
+          result: reportCandidate.approximate ? "검증 불가" : "누락",
+          note: reportCandidate.approximate
+            ? `근사 표현이 포함되어 있어 직접 비교가 어렵습니다. 보고서 위치: ${reportCandidate.location}`
+            : `Source File이 없어 직접 비교를 진행하지 못했습니다. 보고서 위치: ${reportCandidate.location}`,
+          badge: reportCandidate.approximate ? "unavailable" : "missing",
+          delta: reportCandidate.approximate ? "문맥 비교 필요" : "비교값 없음",
+          displayResult: "확인 필요"
+        }));
+
+        return {
+          summary: [
+            rows.length,
+            0,
+            0,
+            rows.filter((row) => row.result === "누락").length,
+            rows.filter((row) => row.result === "검증 불가").length
+          ],
+          rows,
+          mismatchRows: [],
+          reportCount: reportCandidates.length,
+          sourceCount: sourceCandidates.length,
+          notice: "Source File에서 대응값을 찾지 못했지만 보고서 수치 추출은 계속했습니다."
+        };
+      }
+
+      const rows = matchValidationRows(reportCandidates, sourceCandidates);
+      const summary = [
+        rows.length,
+        rows.filter((row) => row.result === "일치").length,
+        rows.filter((row) => row.result === "불일치").length,
+        rows.filter((row) => row.result === "누락").length,
+        rows.filter((row) => row.result === "검증 불가").length
+      ];
+
+      return {
+        summary,
+        rows,
+        mismatchRows: rows.filter((row) => row.result === "불일치"),
+        reportCount: reportCandidates.length,
+        sourceCount: sourceCandidates.length,
+        notice: ""
+      };
+    }
+
+    async function runPythonValidation(reportFiles, sourceFiles) {
+      const formData = new FormData();
+      Array.from(reportFiles).forEach((file) => formData.append("report", file, file.name));
+      Array.from(sourceFiles).forEach((file) => formData.append("source", file, file.name));
+
+      const response = await fetch(`${pythonApiBase}/api/verify`, {
+        method: "POST",
+        cache: "no-store",
+        body: formData
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || `검증 서버 응답 오류 (${response.status})`);
+      }
+      return payload;
+    }
+
+    function announce(message) {
+      announcer.textContent = message;
+    }
+
+    function showToast(title, message) {
+      toast.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span>`;
+      toast.classList.add("show");
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+
+    function setAccordionStates(showResults) {
+      resultAccordion.open = showResults;
+      mismatchAccordion.open = showResults;
+      missingAccordion.open = showResults;
+      unavailableAccordion.open = showResults;
+      systemAccordion.open = false;
+    }
+
+    function renderTimeline(mode) {
+      if (!timeline) return;
+      const activeIndex = stateOrder.indexOf(mode);
+      const items = [
+        { title: "업로드", desc: "검증 대상 보고서와 Source File을 등록합니다." },
+        { title: "유효성 확인", desc: "파일 형식과 읽기 가능 여부를 점검합니다." },
+        { title: "검증 실행", desc: "수치형 데이터 추출과 비교 검증을 진행합니다." },
+        { title: "결과 정리", desc: "일치 / 불일치 / 누락 / 검증 불가를 분류합니다." },
+        { title: "리포트 추출", desc: "Excel 검증결과를 다운로드합니다." },
+        { title: "담당자 확인", desc: "불일치와 검증 불가 항목을 우선 확인합니다." }
+      ];
+
+      timeline.innerHTML = items.map((item, index) => `
+        <div class="evidence-item" style="padding:12px 14px; box-shadow:none; background:${index <= activeIndex ? '#fffaf6' : '#fff'};">
+          <div class="topline">
+            <div>
+              <h4 style="font-size:14px;">${escapeHtml(item.title)}</h4>
+              <p>${escapeHtml(item.desc)}</p>
+            </div>
+            <span class="badge ${index <= activeIndex ? 'review' : 'unavailable'}">${index <= activeIndex ? '진행' : '대기'}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderResults(showResults) {
+      if (!showResults) {
+        resultsBody.innerHTML = `
+          <div class="empty-state">
+            <strong>검증 결과가 아직 없습니다.</strong>
+            검증 대상 보고서와 Source File을 업로드하고 <strong>검증 시작</strong>을 누르면 요약 테이블과 상세 결과가 표시됩니다.
+          </div>
+        `;
+        mismatchBody.innerHTML = `
+          <div class="empty-state">
+            <strong>불일치 항목이 여기에 표시됩니다.</strong>
+            검증이 끝나면 차이값과 담당자 확인 필요 배지가 함께 노출됩니다.
+          </div>
+        `;
+        missingBody.innerHTML = `
+          <div class="empty-state">
+            <strong>누락 항목이 여기에 표시됩니다.</strong>
+            Source File에서 비교값을 찾지 못한 항목이 여기에 모입니다.
+          </div>
+        `;
+        unavailableBody.innerHTML = `
+          <div class="empty-state">
+            <strong>검증불가 항목이 여기에 표시됩니다.</strong>
+            단위나 문맥이 맞지 않아 직접 비교할 수 없는 항목이 여기에 모입니다.
+          </div>
+        `;
+        return;
+      }
+
+      const rows = validationResult?.rows?.length ? validationResult.rows : [];
+      const mismatchRowsForView = validationResult?.mismatchRows?.length
+        ? validationResult.mismatchRows
+        : [];
+      const missingRowsForView = rows.filter((row) => row.result === "누락");
+      const unavailableRowsForView = rows.filter((row) => row.result === "검증 불가");
+      const emptyNotice = validationResult && !validationResult.rows.length
+        ? `
+          <div class="empty-state" style="margin-bottom:18px;">
+            <strong>검증 가능한 수치형 데이터를 찾지 못했습니다.</strong>
+            보고서와 Source File에서 읽을 수 있는 수치형 데이터가 없습니다. 파일이 이미지 스캔본이면 OCR이 필요할 수 있습니다.
+          </div>
+        `
+        : "";
+
+      resultsBody.innerHTML = `
+        <div class="section-head" style="margin:0 0 12px; align-items:flex-start;">
+          <div>
+            <h3 class="section-title" style="font-size:16px;">검증 결과 다운로드</h3>
+            <div class="section-caption">상세 검증 결과를 Excel 파일로 다운로드할 수 있습니다.</div>
+          </div>
+          <button class="btn btn-secondary" type="button" data-export-excel ${rows.length ? "" : "disabled"}>Excel 다운로드</button>
+        </div>
+        ${emptyNotice}
+        <div class="section-head" style="margin:0 0 12px;">
+          <div>
+            <h3 class="section-title" style="font-size:16px;">검증 결과 요약</h3>
+            <div class="section-caption">총 검증 항목 수와 결과 분포</div>
+          </div>
+        </div>
+        <table class="results-table" aria-label="검증 요약 테이블" style="margin-bottom:18px;">
+          <thead>
+            <tr>
+              <th>총 검증 항목 수</th>
+              <th>일치 수</th>
+              <th>불일치 수</th>
+              <th>누락 수</th>
+              <th>검증 불가 수</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${metricTotal.textContent}</td>
+              <td><span class="badge match">${metricMatch.textContent}</span></td>
+              <td><span class="badge mismatch">${metricMismatch.textContent}</span></td>
+              <td><span class="badge missing">${metricMissing.textContent}</span></td>
+              <td><span class="badge unavailable">${metricUnavailable.textContent}</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="section-head" style="margin:0 0 12px;">
+          <div>
+            <h3 class="section-title" style="font-size:16px;">상세 검증 결과</h3>
+            <div class="section-caption">verification-template.md의 열 구성과 동일합니다.</div>
+          </div>
+        </div>
+        <table class="results-table" aria-label="검증 상세 결과 테이블">
+          <thead>
+            <tr>
+              ${verificationRules.outputColumns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((row) => `
+              <tr>
+                <td>${escapeHtml(row.item)}</td>
+                <td>${escapeHtml(row.reportValue)}</td>
+                <td>${escapeHtml(row.reportUnit || "-")}</td>
+                <td>${escapeHtml(row.reportLocation || "-")}</td>
+                <td>${escapeHtml(row.reportSource || "-")}</td>
+                <td><span class="badge ${templateResultBadge(row.result)}">${escapeHtml(row.displayResult || templateResultLabel(row.result))}</span></td>
+                <td>${escapeHtml(row.sourceValue)}</td>
+                <td>${escapeHtml(row.sourceUnit || "-")}</td>
+                <td>${escapeHtml(row.sourceLocation || "-")}</td>
+                <td>${escapeHtml(row.sourceSource || "-")}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+
+      mismatchBody.innerHTML = mismatchRowsForView.length ? mismatchRowsForView.map((row) => `
+        <article class="result-card">
+          <div class="topline">
+            <div>
+              <h4>${escapeHtml(row.item)}</h4>
+              <p>${escapeHtml(row.reportValue)} vs ${escapeHtml(row.sourceValue)}</p>
+            </div>
+            <span class="badge review">담당자 확인 필요</span>
+          </div>
+          <div class="delta">${escapeHtml(row.delta)}</div>
+          <p>${escapeHtml(row.note)}</p>
+        </article>
+      `).join("") : `
+        <div class="empty-state">
+          <strong>불일치 항목이 없습니다.</strong>
+          현재 검증 결과에서는 담당자 확인이 필요한 항목이 없습니다.
+        </div>
+      `;
+
+      missingBody.innerHTML = missingRowsForView.length ? missingRowsForView.map((row) => `
+        <article class="result-card">
+          <div class="topline">
+            <div>
+              <h4>${escapeHtml(row.item)}</h4>
+              <p>${escapeHtml(row.reportValue)} vs ${escapeHtml(row.sourceValue)}</p>
+            </div>
+            <span class="badge missing">누락</span>
+          </div>
+          <div class="delta">${escapeHtml(row.delta)}</div>
+          <p>${escapeHtml(row.note)}</p>
+        </article>
+      `).join("") : `
+        <div class="empty-state">
+          <strong>누락 항목이 없습니다.</strong>
+          현재 검증 결과에서는 누락으로 분류된 항목이 없습니다.
+        </div>
+      `;
+
+      unavailableBody.innerHTML = unavailableRowsForView.length ? unavailableRowsForView.map((row) => `
+        <article class="result-card">
+          <div class="topline">
+            <div>
+              <h4>${escapeHtml(row.item)}</h4>
+              <p>${escapeHtml(row.reportValue)} vs ${escapeHtml(row.sourceValue)}</p>
+            </div>
+            <span class="badge unavailable">검증불가</span>
+          </div>
+          <div class="delta">${escapeHtml(row.delta)}</div>
+          <p>${escapeHtml(row.note)}</p>
+        </article>
+      `).join("") : `
+        <div class="empty-state">
+          <strong>검증불가 항목이 없습니다.</strong>
+          현재 검증 결과에서는 검증불가로 분류된 항목이 없습니다.
+        </div>
+      `;
+
+    }
+
+    function setSummary(values) {
+      metricTotal.textContent = values[0];
+      metricMatch.textContent = values[1];
+      metricMismatch.textContent = values[2];
+      metricMissing.textContent = values[3];
+      metricUnavailable.textContent = values[4];
+    }
+
+    resultsBody.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-export-excel]");
+      if (!button) return;
+      if (button.disabled) {
+        showToast("다운로드 준비 중", "검증 결과가 먼저 표시되어야 합니다.");
+        return;
+      }
+      await downloadExcelFromResults();
+    });
+
+    function updateButtons(mode) {
+      stateButtons.forEach((btn) => {
+        btn.setAttribute("aria-pressed", String(btn.dataset.state === mode));
+      });
+    }
+
+    function updateFileCard(kind, files) {
+      const statusEl = kind === "report" ? reportStatus : sourceStatus;
+      const nameEl = kind === "report" ? reportFileName : sourceFileName;
+      const fileList = files ? Array.from(files) : [];
+
+      if (!fileList.length) {
+        statusEl.dataset.status = "idle";
+        statusEl.textContent = "대기";
+        nameEl.textContent = "아직 선택된 파일이 없습니다.";
+        return true;
+      }
+
+      const invalidFile = fileList.find((file) => !fileTypeAllowed(file));
+      if (invalidFile) {
+        statusEl.dataset.status = "error";
+        statusEl.textContent = "형식 오류";
+        nameEl.textContent = "지원하지 않는 파일 형식이 포함되어 있습니다.";
+        showToast("파일 형식 오류", "PDF, Word, Excel 파일만 업로드해 주세요.");
+        announce(`${kind === "report" ? "검증 대상 보고서" : "Source File"} 형식 오류`);
+        return false;
+      }
+
+      statusEl.dataset.status = "ready";
+      statusEl.textContent = `선택 완료 · ${fileList.length}개`;
+      nameEl.innerHTML = `
+        <div style="display:grid; gap:6px;">
+          <div>${fileList.length}개 파일이 선택되었습니다.</div>
+          <div style="display:grid; gap:6px; color:var(--muted); font-size:12px;">
+            ${fileList.map((file) => `<div>• ${escapeHtml(file.name)} · ${escapeHtml(formatSize(file.size))}</div>`).join("")}
+          </div>
+        </div>
+      `;
+      announce(`${kind === "report" ? "검증 대상 보고서" : "Source File"} 업로드 완료`);
+      return true;
+    }
+
+    function hasSelectedFiles() {
+      return Boolean(reportInput.files && reportInput.files.length && sourceInput.files && sourceInput.files.length);
+    }
+
+    function setState(mode, options = {}) {
+      currentState = mode;
+      const meta = stateMeta[mode];
+      const summaryValues = options.summary || ((validationResult?.summary && (mode === "extracted" || mode === "download")) ? validationResult.summary : meta.summary);
+
+      updateButtons(mode);
+      stateLabel.textContent = meta.label;
+      stateCopy.textContent = meta.copy;
+      heroNote.textContent = meta.note;
+      progressBar.style.width = `${meta.progress}%`;
+      progressText.textContent = `${meta.progress}%`;
+      statusTag.textContent = meta.progressTag;
+      validationHint.textContent = meta.resultHint;
+      setSummary(summaryValues);
+      renderTimeline(mode);
+      renderResults(meta.showResults);
+      setAccordionStates(meta.showResults);
+
+      startBtn.textContent = meta.buttonLabel;
+      startBtn.disabled = mode === "analyzing" ? true : !hasSelectedFiles();
+
+      if (mode === "extracted" || mode === "download") {
+        announce("요약 및 검증결과가 표시되었습니다.");
+      } else {
+        announce(meta.label);
+      }
+
+      if (options.toast) {
+        showToast(options.toast.title, options.toast.message);
+      }
+    }
+
+    function handleSelection(kind, fileList) {
+      const files = fileList ? Array.from(fileList) : [];
+      if (!files.length) {
+        validationResult = null;
+        updateFileCard(kind, null);
+        renderResults(false);
+        startBtn.disabled = !hasSelectedFiles();
+        return;
+      }
+
+      const input = kind === "report" ? reportInput : sourceInput;
+      const ok = updateFileCard(kind, files);
+      if (!ok) {
+        validationResult = null;
+        input.value = "";
+        startBtn.disabled = !hasSelectedFiles();
+        return;
+      }
+      validationResult = null;
+      renderResults(false);
+      startBtn.disabled = !hasSelectedFiles();
+      if (hasSelectedFiles()) {
+        setState("uploaded");
+      }
+    }
+
+    function clearFile(kind) {
+      if (kind === "report") {
+        reportInput.value = "";
+        updateFileCard(kind, null);
+      } else {
+        sourceInput.value = "";
+        updateFileCard(kind, null);
+      }
+      validationResult = null;
+      renderResults(false);
+      startBtn.disabled = !hasSelectedFiles();
+      if (!hasSelectedFiles() && ["uploaded", "analyzing", "extracted", "download"].includes(currentState)) {
+        setState("initial", {
+          toast: {
+            title: "파일 초기화",
+            message: "업로드 파일이 모두 제거되어 초기 상태로 돌아갔습니다."
+          }
+        });
+      }
+    }
+
+    document.getElementById("reportFile").addEventListener("change", (event) => handleSelection("report", event.target.files));
+    document.getElementById("sourceFile").addEventListener("change", (event) => handleSelection("source", event.target.files));
+
+    document.querySelectorAll("[data-clear]").forEach((button) => {
+      button.addEventListener("click", () => clearFile(button.dataset.clear));
+    });
+
+    document.querySelectorAll("[data-dropzone]").forEach((zone) => {
+      const kind = zone.dataset.dropzone;
+      const input = kind === "report" ? reportInput : sourceInput;
+
+      zone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        zone.classList.add("dragging");
+      });
+      zone.addEventListener("dragleave", () => zone.classList.remove("dragging"));
+      zone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        zone.classList.remove("dragging");
+        const files = event.dataTransfer.files;
+        if (!files || !files.length) return;
+        try {
+          const dt = new DataTransfer();
+          Array.from(files).forEach((file) => dt.items.add(file));
+          input.files = dt.files;
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (error) {
+          handleSelection(kind, files);
+        }
+      });
+    });
+
+    startBtn.addEventListener("click", async () => {
+      if (currentState === "analyzing") return;
+      if (!hasSelectedFiles()) {
+        showToast("파일이 필요합니다", "검증 대상 보고서와 Source File을 모두 업로드해 주세요.");
+        announce("검증 시작 불가");
+        return;
+      }
+
+      clearTimeout(validationTimer);
+      setState("analyzing");
+      try {
+        validationResult = await runPythonValidation(reportInput.files, sourceInput.files);
+        validationResult.mismatchRows = validationResult.mismatchRows || validationResult.rows.filter((row) => row.result === "불일치");
+        if (validationResult.notice) {
+          showToast("검증 안내", validationResult.notice);
+        }
+        setState("extracted", {
+          summary: validationResult.summary,
+          toast: {
+            title: "검증 완료",
+            message: validationResult.rows.length
+              ? "업로드된 파일을 읽어 요약과 상세 결과를 표시했습니다."
+              : (validationResult.notice || "검증할 수 있는 숫자형 데이터가 없습니다.")
+          }
+        });
+      } catch (error) {
+        console.error(error);
+        validationResult = null;
+        setState("uploaded", {
+          toast: {
+            title: "분석 실패",
+            message: "Python 검증 서버를 찾지 못했습니다. 먼저 `python ml/server.py --port 8000`를 실행해 주세요."
+          }
+        });
+      }
+    });
+
+    stateButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        clearTimeout(validationTimer);
+        setState(button.dataset.state, {
+          toast: {
+            title: "상태 전환",
+            message: stateMeta[button.dataset.state].label + " 화면으로 이동했습니다."
+          }
+        });
+      });
+    });
+
+    function bytesFromBase64(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+      return bytes;
+    }
+
+    function fileFromPayload(payload) {
+      return new File([bytesFromBase64(payload.base64)], payload.name, {
+        type: payload.type || "application/octet-stream"
+      });
+    }
+
+    function assignFilesToInput(input, files) {
+      const dt = new DataTransfer();
+      files.forEach((file) => dt.items.add(file));
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function applyAutotestFiles() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("autotest") !== "1") return;
+
+      let payload = null;
+      try {
+        const encodedPayload = params.get("payload");
+        if (encodedPayload) {
+          payload = JSON.parse(encodedPayload);
+        } else {
+          const prefix = "__DATA_AUDIT_AUTOTEST__=";
+          if (window.name && window.name.startsWith(prefix)) {
+            payload = JSON.parse(window.name.slice(prefix.length) || "null");
+          }
+        }
+      } catch (error) {
+        payload = null;
+      }
+      if (!payload || !Array.isArray(payload.report) || !Array.isArray(payload.source)) return;
+
+      assignFilesToInput(reportInput, payload.report.map(fileFromPayload));
+      assignFilesToInput(sourceInput, payload.source.map(fileFromPayload));
+      window.name = "";
+    }
+
+    renderTimeline("initial");
+    renderResults(false);
+    setSummary(stateMeta.initial.summary);
+    setState("initial");
+    setTimeout(applyAutotestFiles, 0);
+  </script>
+</body>
+</html>
