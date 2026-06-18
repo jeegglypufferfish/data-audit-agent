@@ -1472,7 +1472,10 @@
       mismatchHighlight: true
     };
 
-    const pythonApiBase = "http://127.0.0.1:8000";
+    const verificationEndpoints = [
+      "/api/verify",
+      "http://127.0.0.1:8000/api/verify"
+    ];
 
     const stateButtons = Array.from(document.querySelectorAll("[data-state]"));
     const resultAccordion = document.getElementById("resultsAccordion");
@@ -2539,16 +2542,24 @@
       Array.from(reportFiles).forEach((file) => formData.append("report", file, file.name));
       Array.from(sourceFiles).forEach((file) => formData.append("source", file, file.name));
 
-      const response = await fetch(`${pythonApiBase}/api/verify`, {
-        method: "POST",
-        cache: "no-store",
-        body: formData
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || `검증 서버 응답 오류 (${response.status})`);
+      let lastError = null;
+      for (const endpoint of verificationEndpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            cache: "no-store",
+            body: formData
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload.ok) {
+            throw new Error(payload.error || `검증 서버 응답 오류 (${response.status})`);
+          }
+          return payload;
+        } catch (error) {
+          lastError = error;
+        }
       }
-      return payload;
+      throw lastError || new Error("검증 서버를 찾지 못했습니다.");
     }
 
     function announce(message) {
