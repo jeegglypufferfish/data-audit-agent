@@ -1624,6 +1624,8 @@
       return "";
     }
 
+    const yearLikeUnits = new Set(["년", "년도", "연도", "학년", "회계연도"]);
+
     function parseNumericToken(line, match) {
       const numberText = String(match?.[0] || "");
       const cleaned = numberText.replace(/,/g, "");
@@ -1638,6 +1640,44 @@
         unit,
         decimals: (numberPart.split(".")[1] || "").length
       };
+    }
+
+    function isYearLikeCandidate(line, match, token) {
+      const rawDigits = String(match?.[0] || "").replace(/\D/g, "");
+      if (!rawDigits) return false;
+
+      const numericInt = Number.parseInt(token?.numeric, 10);
+      if (yearLikeUnits.has(token?.unit || "")) return true;
+
+      if (rawDigits.length === 4 && Number.isFinite(numericInt) && numericInt >= 1900 && numericInt <= 2099) {
+        return true;
+      }
+
+      if (Number.isFinite(numericInt) && numericInt >= 0 && numericInt <= 99) {
+        const start = Math.max(0, (match?.index || 0) - 2);
+        const end = Math.min(String(line || "").length, (match?.index || 0) + rawDigits.length + 4);
+        const window = normalizeText(String(line || "").slice(start, end));
+        if (/(년|년도|연도|학년|회계연도)/.test(window)) return true;
+      }
+
+      if ((match?.index || 0) > 0) {
+        const before = String(line || "")[(match.index || 0) - 1];
+        if (before && "([".includes(before) && rawDigits.length === 4 && Number.isFinite(numericInt) && numericInt >= 1900 && numericInt <= 2099) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function candidateSignature(candidate) {
+      return [
+        candidate.role || "",
+        normalizeKey(candidate.label || ""),
+        String(candidate.valueText || "").replace(/\s+/g, ""),
+        normalizeKey(candidate.unit || ""),
+        candidate.approximate ? "1" : "0"
+      ].join("|");
     }
 
     function hasApproximateCue(text) {
@@ -1987,6 +2027,16 @@
       return Math.round((value + Number.EPSILON) * factor) / factor;
     }
 
+    function isYearLikePeriod(value) {
+      return /^(?:19\d{2}|20\d{2}|\d{2})$/.test(String(value || "").trim());
+    }
+
+    function formatItemLabel(candidate, fallbackPeriod = "") {
+      const label = String(candidate?.label || "").replace(/\s+/g, "");
+      const period = isYearLikePeriod(candidate?.period) ? "" : (candidate?.period || fallbackPeriod);
+      return period ? `${label}(${period})` : label;
+    }
+
     function deriveLabel(text, numberIndex) {
       let prefix = normalizeText(text.slice(0, numberIndex)).replace(/[:：\-–—]+$/, "").trim();
       prefix = prefix.replace(/^.*?(?:에 따르면|에 의하면|에 의거하면)\s*/, "");
@@ -2282,6 +2332,7 @@
       const candidates = [];
       const valuePattern = /(?:[-+]?\d{1,3}(?:,\d{3})+|[-+]?\d+)(?:\.\d+)?/g;
       const genericLabels = new Set(["", "page", "pg", "p", "sheet", "시트", "table", "표", "본문", "문단"]);
+      const seenSignatures = new Set();
 
       blocks.forEach((block, blockIndex) => {
         const line = normalizeText(block.text);
@@ -2294,7 +2345,7 @@
           const label = deriveLabel(line, line.length);
           const normalizedLabel = normalizeKey(label);
           if (genericLabels.has(normalizedLabel)) return;
-          candidates.push({
+          const candidate = {
             id: `${role}-${blockIndex}-approx`,
             label,
             value: approx.numeric,
@@ -2305,19 +2356,24 @@
             sourceText: line,
             role,
             approximate: true
-          });
+          };
+          const signature = candidateSignature(candidate);
+          if (seenSignatures.has(signature)) return;
+          seenSignatures.add(signature);
+          candidates.push(candidate);
           return;
         }
 
         matches.forEach((match, matchIndex) => {
           const token = parseNumericToken(line, match);
           if (!token) return;
+          if (isYearLikeCandidate(line, match, token)) return;
           const label = deriveLabel(line, match.index || 0);
           const normalizedLabel = normalizeKey(label);
           if (genericLabels.has(normalizedLabel)) return;
           if (/^(pg|page|p|sheet|table)\s*\d*$/i.test(normalizedLabel)) return;
           if (normalizedLabel.length < 2) return;
-          candidates.push({
+          const candidate = {
             id: `${role}-${blockIndex}-${matchIndex}`,
             label,
             value: token.numeric,
@@ -2328,7 +2384,11 @@
             sourceText: line,
             role,
             approximate: hasApproximateCue(line)
-          });
+          };
+          const signature = candidateSignature(candidate);
+          if (seenSignatures.has(signature)) return;
+          seenSignatures.add(signature);
+          candidates.push(candidate);
         });
       });
 
@@ -2418,7 +2478,7 @@
 
         if (bestIndex < 0 || bestScore < 0.3) {
           rows.push({
-            item: reportCandidate.label,
+            item: formatItemLabel(reportCandidate),
             reportValue: reportCandidate.valueText,
             reportUnit: reportCandidate.unit || "-",
             reportLocation: reportCandidate.location,
@@ -2441,8 +2501,9 @@
         usedSource.add(bestIndex);
         const sourceCandidate = sourceCandidates[bestIndex];
         const comparison = compareCandidates(reportCandidate, sourceCandidate);
+        const fallbackPeriod = isYearLikePeriod(sourceCandidate.period) ? "" : (sourceCandidate.period || reportCandidate.period);
         rows.push({
-          item: reportCandidate.label,
+          item: formatItemLabel(reportCandidate, fallbackPeriod),
           reportValue: reportCandidate.valueText,
           reportUnit: reportCandidate.unit || "-",
           reportLocation: reportCandidate.location,

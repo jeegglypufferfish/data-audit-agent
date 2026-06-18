@@ -49,6 +49,7 @@ RESULT_LABELS = {
 QUALITATIVE_EXCLUDES = {"낮음", "높음", "보통", "중간", "상", "하"}
 APPROXIMATE_TERMS = ("약", "대략", "정도", "절반")
 BIG_UNIT_TOKENS = ("조", "억", "만", "천", "백")
+YEAR_LIKE_UNITS = {"년", "년도", "연도", "학년", "회계연도"}
 
 SUPPORTED_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx"}
 NUMERIC_PATTERN = re.compile(
@@ -295,6 +296,47 @@ def parse_numeric_token(line: str, match: re.Match[str]) -> Candidate | None:
         source_text="",
         evidence="",
         role="",
+    )
+
+
+def is_year_like_candidate(line: str, match: re.Match[str], token: Candidate) -> bool:
+    raw_digits = re.sub(r"\D", "", match.group(0) or "")
+    if not raw_digits:
+        return False
+
+    try:
+        numeric_int = int(float(token.value))
+    except Exception:
+        numeric_int = None
+
+    if token.unit in YEAR_LIKE_UNITS:
+        return True
+
+    if len(raw_digits) == 4 and numeric_int is not None and 1900 <= numeric_int <= 2099:
+        return True
+
+    if numeric_int is not None and 0 <= numeric_int <= 99:
+        window_start = max(0, match.start() - 2)
+        window_end = min(len(line), match.end() + 4)
+        window = normalize_text(line[window_start:window_end])
+        if re.search(r"(?:년|년도|연도|학년|회계연도)", window):
+            return True
+
+    if match.start() > 0:
+        before = line[match.start() - 1]
+        if before in "([" and len(raw_digits) == 4 and numeric_int is not None and 1900 <= numeric_int <= 2099:
+            return True
+
+    return False
+
+
+def candidate_signature(candidate: Candidate) -> tuple[str, str, str, str, str]:
+    return (
+        candidate.role,
+        normalize_key(candidate.label),
+        re.sub(r"\s+", "", candidate.value_text or ""),
+        normalize_key(candidate.unit),
+        "1" if candidate.approximate else "0",
     )
 
 
@@ -584,6 +626,7 @@ def extract_blocks_from_file(file_path: Path) -> list[Block]:
 def extract_numeric_candidates(blocks: Sequence[Block], role: str) -> list[Candidate]:
     candidates: list[Candidate] = []
     generic_labels = GENERIC_LABELS
+    seen_signatures: set[tuple[str, str, str, str, str]] = set()
 
     for block_index, block in enumerate(blocks):
         line = normalize_text(block.text)
@@ -598,27 +641,32 @@ def extract_numeric_candidates(blocks: Sequence[Block], role: str) -> list[Candi
             label = derive_label(line[: approx.start()], line)
             if not label or normalize_key(label) in generic_labels:
                 continue
-            candidates.append(
-                Candidate(
-                    id=f"{role}-{block_index}-approx",
-                    label=label,
-                    period=extract_period_from_text(line),
-                    value=50.0,
-                    unit="%",
-                    decimals=0,
-                    value_text=normalize_text(line),
-                    location=block.location,
-                    source_text=line,
-                    evidence=block.reference,
-                    role=role,
-                    approximate=True,
-                )
+            candidate = Candidate(
+                id=f"{role}-{block_index}-approx",
+                label=label,
+                period=extract_period_from_text(line),
+                value=50.0,
+                unit="%",
+                decimals=0,
+                value_text=normalize_text(line),
+                location=block.location,
+                source_text=line,
+                evidence=block.reference,
+                role=role,
+                approximate=True,
             )
+            signature = candidate_signature(candidate)
+            if signature in seen_signatures:
+                continue
+            seen_signatures.add(signature)
+            candidates.append(candidate)
             continue
 
         for match_index, match in enumerate(matches):
             token = parse_numeric_token(line, match)
             if not token:
+                continue
+            if is_year_like_candidate(line, match, token):
                 continue
             label = derive_label(line[: match.start()], line)
             normalized_label = normalize_key(label)
@@ -629,22 +677,25 @@ def extract_numeric_candidates(blocks: Sequence[Block], role: str) -> list[Candi
             if len(normalized_label) < 2:
                 continue
             nearby_text = normalize_text(line[max(0, match.start() - 18): min(len(line), match.end() + 18)])
-            candidates.append(
-                Candidate(
-                    id=f"{role}-{block_index}-{match_index}",
-                    label=label,
-                    period=extract_period_from_text(line[: match.start()]),
-                    value=token.value,
-                    unit=token.unit,
-                    decimals=token.decimals,
-                    value_text=token.value_text,
-                    location=block.location,
-                    source_text=line,
-                    evidence=extract_report_source_for_candidate(line, match.start(), match.end(), block.reference) if role == "report" else block.reference,
-                    role=role,
-                    approximate=has_approximate_cue(nearby_text),
-                )
+            candidate = Candidate(
+                id=f"{role}-{block_index}-{match_index}",
+                label=label,
+                period=extract_period_from_text(line[: match.start()]),
+                value=token.value,
+                unit=token.unit,
+                decimals=token.decimals,
+                value_text=token.value_text,
+                location=block.location,
+                source_text=line,
+                evidence=extract_report_source_for_candidate(line, match.start(), match.end(), block.reference) if role == "report" else block.reference,
+                role=role,
+                approximate=has_approximate_cue(nearby_text),
             )
+            signature = candidate_signature(candidate)
+            if signature in seen_signatures:
+                continue
+            seen_signatures.add(signature)
+            candidates.append(candidate)
     return candidates
 
 
@@ -659,6 +710,8 @@ def format_display_value(candidate: Candidate, display_unit: str) -> str:
 def format_item_label(candidate: Candidate, fallback_period: str = "") -> str:
     label = re.sub(r"\s+", "", candidate.label or "")
     period = candidate.period or fallback_period
+    if period and re.fullmatch(r"(?:19\d{2}|20\d{2}|\d{2})", period):
+        period = ""
     return f"{label}({period})" if period else label
 
 
